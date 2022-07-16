@@ -1,0 +1,27 @@
+{
+  "name": "solidity-auction",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rfarina/solidity-auction.git"
+  },
+  "author": "Rick Farina",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rfarina/solidity-auction/issues"
+  },
+  "homepage": "https://github.com/rfarina/solidity-auction#readme",
+  "devDependencies": {
+    "chai": "^4.3.6"
+  },
+  "dependencies": {
+    "chai-as-promised": "^7.1.1",
+    "ethers": "^5.6.9",
+    "mocha": "^10.0.0"
+  }
+}
