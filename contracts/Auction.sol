@@ -2,17 +2,22 @@
 pragma solidity 0.8.15;
 
 interface IERC721 {
-    function transferFrom(address from, address to, uint nftId) external;
+    function transferFrom(
+        address from,
+        address to,
+        uint256 nftId
+    ) external;
 }
+
 contract Auction {
     IERC721 public immutable nft;
-    uint public immutable nftId;
+    uint256 public immutable nftId;
 
     address payable public seller;
     uint256 public startingBid;
     uint256 public currentBid;
     uint256 public auctionEndTime;
-    address payable public  highestBidder;
+    address payable public highestBidder;
     bool public auctionActive;
 
     mapping(address => uint256) public bidderToBid;
@@ -22,20 +27,27 @@ contract Auction {
     struct Bid {
         address bidder;
         uint256 bid;
+        uint256 timeStamp;
     }
 
     error InsufficientBidAmount(uint256 bidAmount, uint256 currentBid);
     error AuctionExpired(uint256 currentTime, uint256 auctionEndTime);
     error InsufficientFunds(uint256 bidAmount, uint256 currentBalance);
 
-    
-    
-    event Start(uint startingBid, uint duration);
+    event Start(uint256 startingBid, uint256 duration);
     event BidAccepted(address bidder, uint256 amount, uint256 bidTime);
     event BidNotAccepted(address bidder, uint256 amount, uint256 bidTime);
 
-    event LosingBidReturned(address returnedTo, uint amount, uint256 returnTime);
-    event LosingBidNotReturned(address notReturnedTo, uint amount, uint256 notReturnTime);
+    event PreviousHighBidReturned(
+        address returnedTo,
+        uint256 amount,
+        uint256 returnTime
+    );
+    event PreviousHighBidNotReturned(
+        address notReturnedTo,
+        uint256 amount,
+        uint256 notReturnTime
+    );
 
     event PaymentReceived(address sender, uint256 amount, string processedBy);
 
@@ -44,7 +56,7 @@ contract Auction {
         uint256 amount,
         string processedBy
     );
-    event End(address winner, uint winningBid );
+    event End(address winner, uint256 winningBid);
 
     modifier onlySeller() {
         require(msg.sender == seller, "Not seller");
@@ -63,16 +75,17 @@ contract Auction {
         _;
     }
 
-    constructor(address _nft, uint _nftId) {
-        
+    constructor(address _nft, uint256 _nftId) {
         nft = IERC721(_nft);
         nftId = _nftId;
 
         seller = payable(msg.sender);
-
     }
 
-    function start(uint256 _startingBid, uint256 _auctionDuration) external onlySeller {
+    function start(uint256 _startingBid, uint256 _auctionDuration)
+        external
+        onlySeller
+    {
         require(!auctionActive, "Already Started");
 
         auctionActive = true;
@@ -113,9 +126,8 @@ contract Auction {
             });
         }
 
-        // Reduce prior bid liability
-        _returnOldBid(highestBidder, bidderToBid[highestBidder]);
-        
+        // Reduce prior bid liability immediately
+        _returnPreviousHighBid(highestBidder, bidderToBid[highestBidder]);
 
         // Bid accepted
         currentBid = _bidAmount;
@@ -125,43 +137,62 @@ contract Auction {
         bidderToBid[msg.sender] += _bidAmount;
 
         // Add to array as Struct
-        bids.push(Bid(msg.sender, _bidAmount));
+        bids.push(Bid(msg.sender, _bidAmount, block.timestamp));
 
         emit BidAccepted(msg.sender, _bidAmount, block.timestamp);
     }
 
-    function _returnOldBid (address _priorBidder, uint _priorBidAmount) internal {
+    function _returnPreviousHighBid(address _priorBidder, uint256 _priorBidAmount)
+        internal
+    {
         // Send back previous bids to previous highest bidder if not address(0)
-        if (highestBidder != address(0) && bidderToBid[_priorBidder] >= _priorBidAmount){
-
+        if (
+            highestBidder != address(0) &&
+            bidderToBid[_priorBidder] >= _priorBidAmount
+        ) {
             // Todo: should protect against reentrancy!!
             bool success = payable(_priorBidder).send(_priorBidAmount);
             if (!success) {
-                // Do not reduce liability
-                emit LosingBidNotReturned(_priorBidder, _priorBidAmount, block.timestamp);
+                // Do not reduce liability of the auction contract
+                emit PreviousHighBidNotReturned(
+                    _priorBidder,
+                    _priorBidAmount,
+                    block.timestamp
+                );
             } else {
-                // Reduce liability
+                // Reduce liability of the auction contract
                 bidderToBid[_priorBidder] -= _priorBidAmount; // reduce bid liability (s/b zero after)
-                emit LosingBidReturned(_priorBidder, _priorBidAmount, block.timestamp);
+                emit PreviousHighBidReturned(
+                    _priorBidder,
+                    _priorBidAmount,
+                    block.timestamp
+                );
             }
         }
     }
 
-    function endBid()
+    function endAuction()
         external
         onlySeller
         onlyAuctionActive
         returns (address _winner, uint256 _winningBid)
     {
         auctionActive = false;
-        returnLosingBids();
+        // _returnLosingBids(); no longer needed
+
+        // Transfer token ownership to winning bid
+        nft.transferFrom(address(this), highestBidder, nftId);
+
+        // Transfer funds to seller
+        bool success = payable(seller).send(address(this).balance);
+
         _winner = highestBidder;
         _winningBid = currentBid;
 
         emit End(_winner, _winningBid);
     }
 
-    function returnLosingBids() internal returns (bool) {
+    function _returnLosingBids() internal returns (bool) {
         for (uint256 i = 0; i < bids.length; i++) {
             Bid storage _bid = bids[i];
             if (_bid.bidder != highestBidder) {
@@ -181,6 +212,10 @@ contract Auction {
             }
         }
         return true;
+    }
+
+    function listBids() external view returns(Bid[] memory) {
+        return bids;
     }
 
     function senderBalance() external view returns (uint256) {

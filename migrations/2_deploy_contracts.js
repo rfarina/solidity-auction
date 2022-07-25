@@ -4,6 +4,7 @@ const { writeFileSync } = require("fs")
 const path = "./deployedAddresses.json"
 
 module.exports = async function (deployer, network, accounts) {
+    // The following allows us to keep the initial instance of each contract
     if (network == "test") { return }  // test will deploy its own
 
     // Deploy nft
@@ -26,5 +27,6 @@ module.exports = async function (deployer, network, accounts) {
         auction: auction.address
     }
 
+    // Capture nft and auction addresses, which will be read in by the test process
     writeFileSync(path, JSON.stringify(addresses,null,2), "utf-8")
 }

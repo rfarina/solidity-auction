@@ -9,8 +9,8 @@ const { ethers } = require("ethers");
 const chai = require("chai");
 chai.use(require("chai-as-promised"));
 const { assert, expect } = require("chai");
-const { toBN } = web3.utils;
 // const { default: Web3 } = require("web3");
+// const { toBN } = web3.utils; testing...
 
 // console.log("testing...");
 const Nft = artifacts.require("Nft");
@@ -19,7 +19,8 @@ const decimals = 18;
 const startingBid = web3.utils.toWei("1.0", "ether");
 const auctionDuration = "4800";
 const eoaBalances = [];
-let gasCharged;
+
+const { toBN, calculateGas } = require("../shared/auction.utils")
 
 contract("Auction", async (accounts) => {
     let nft, auction;
@@ -28,8 +29,7 @@ contract("Auction", async (accounts) => {
     const bidder2 = accounts[2]
     const bidder3 = accounts[3]
     const bidder4 = accounts[4]
-
-
+    
     before(async () => {
         // Get a reference to the contracts deployed on ganache
 
@@ -158,12 +158,25 @@ contract("Auction", async (accounts) => {
     })
 
     // Make legitimate first bid
-    it.only("should place first bid and confirm contract balance", async () => {
+    it.only("should place first bid, confirm eoa and contract balances", async () => {
         let bidder = bidder1
         let bid = await web3.utils.toWei("2.0", "ether")
 
+        const bidderBalanceBefore = parseInt(await web3.eth.getBalance(bidder));
+
         // Place a bid
         const resObj = await auction.bid({ from: bidder, value: bid });
+        const bidderBalanceAfter = parseInt(await web3.eth.getBalance(bidder));
+
+        
+        // Calculate cost of gas, which will be paid by msg.sender, which is the bidder
+        const gasCharged = await calculateGas(resObj)
+        // console.log("***************************************************************")
+        // console.log(`Bidder balance b4:                 ${parseInt(bidderBalanceBefore)}`)
+        // console.log(`Bidder balance aft:                ${parseInt(bidderBalanceAfter)}`)
+        // console.log(`Bidder balance aft + bid + gas :   ${parseInt(bidderBalanceAfter) + parseInt(bid) + parseInt(gasCharged)}`)
+        // console.log("***************************************************************")
+
         // console.log(`response from legitimate higher bid:\n ${JSON.stringify(resObj, null, 2)}`)
 
         // log[0] event Bid accepted
@@ -174,6 +187,7 @@ contract("Auction", async (accounts) => {
         assert.equal(resObj.receipt.logs[0].event, "BidAccepted")
         assert.equal(resObj.receipt.logs[0].args["bidder"], bidder)
         assert.equal(parseInt(resObj.receipt.logs[0].args["amount"]), bid)
+        assert.equal(await web3.eth.getBalance(bidder), parseInt(bidderBalanceBefore) - parseInt(bid) - parseInt(gasCharged))
 
         // Contract balance s/b = accepted bid amount
         const contractBal = await web3.eth.getBalance(auction.address)
@@ -189,7 +203,6 @@ contract("Auction", async (accounts) => {
             auction.bid({ from: bidder, value: bid })
         ).to.be.rejected
     })
-
 
     // Make bid that surpasses current bid
     // - should return funds immediately for previous high bid
@@ -210,7 +223,7 @@ contract("Auction", async (accounts) => {
         // console.log(`Losing bid returned event: ${resObj.receipt.logs[0].event}`)
         // console.log(`Losing bid returned address: ${resObj.receipt.logs[0].args["returnedTo"]}`)
         // console.log(`Losing bid returned amount: ${resObj.receipt.logs[0].args["amount"]}`)
-        assert.equal(resObj.receipt.logs[0].event, "LosingBidReturned")
+        assert.equal(resObj.receipt.logs[0].event, "PreviousHighBidReturned")
         assert.equal(resObj.receipt.logs[0].args["returnedTo"], priorBidder)
         assert.equal(parseInt(resObj.receipt.logs[0].args["amount"]), priorBid)
 
@@ -245,7 +258,7 @@ contract("Auction", async (accounts) => {
         // console.log(`Losing bid returned event: ${resObj.receipt.logs[0].event}`)
         // console.log(`Losing bid returned address: ${resObj.receipt.logs[0].args["returnedTo"]}`)
         // console.log(`Losing bid returned amount: ${resObj.receipt.logs[0].args["amount"]}`)
-        assert.equal(resObj.receipt.logs[0].event, "LosingBidReturned")
+        assert.equal(resObj.receipt.logs[0].event, "PreviousHighBidReturned")
         assert.equal(resObj.receipt.logs[0].args["returnedTo"], priorBidder)
         assert.equal(parseInt(resObj.receipt.logs[0].args["amount"]), priorBid)
 
@@ -266,6 +279,7 @@ contract("Auction", async (accounts) => {
 
 
     it.only("should place another higher bid, which is accepted", async () => {
+
         let priorBidder = bidder3
         let priorBid = await web3.utils.toWei("3.0", "ether")
         let bidder = bidder4
@@ -275,12 +289,11 @@ contract("Auction", async (accounts) => {
         const resObj = await auction.bid({ from: bidder, value: bid });
         // console.log(`response from legitimate higher bid:\n ${JSON.stringify(resObj, null, 2)}`)
 
-
         // log[0] previous bid returned
         // console.log(`Losing bid returned event: ${resObj.receipt.logs[0].event}`)
         // console.log(`Losing bid returned address: ${resObj.receipt.logs[0].args["returnedTo"]}`)
         // console.log(`Losing bid returned amount: ${resObj.receipt.logs[0].args["amount"]}`)
-        assert.equal(resObj.receipt.logs[0].event, "LosingBidReturned")
+        assert.equal(resObj.receipt.logs[0].event, "PreviousHighBidReturned")
         assert.equal(resObj.receipt.logs[0].args["returnedTo"], priorBidder)
         assert.equal(parseInt(resObj.receipt.logs[0].args["amount"]), priorBid)
 
@@ -299,128 +312,46 @@ contract("Auction", async (accounts) => {
         assert.equal(parseInt(contractBal), parseInt(bid))
     })
 
+    it.only("should end auction by seller, transfer token to winner, transfer funds to seller", async () => {
+        let bidder = bidder4
+        
+        // capture seller, bidder, beginning balance and contract balance
+        const sellerBalanceBefore = parseInt(await web3.eth.getBalance(seller));
+        const winningBidderBalanceBefore = parseInt(await web3.eth.getBalance(bidder));
+        const contractBalanceBefore = parseInt(await web3.eth.getBalance(auction.address));
+        
+        // console.log(`Seller balance before:             ${parseInt(sellerBalanceBefore)}`)
+        // console.log(`Contract balance before:           ${parseInt(contractBalanceBefore)}`)
+        
+        const resObj = await auction.endAuction();
+        // Calculate cost of gas, which will be paid by msg.sender, which is the seller
+        const gasCharged = await calculateGas(resObj)
+        const expectedNewSellerBalance = ( parseInt(sellerBalanceBefore) + parseInt(contractBalanceBefore) ) - parseInt(gasCharged)
+        const winningBidderBalanceAfter = parseInt(await web3.eth.getBalance(bidder));
+        
+        console.log(`Expected seller balance after:     ${parseInt(expectedNewSellerBalance)}`)
+        console.log(`Actual seller balance after:       ${parseInt(await web3.eth.getBalance(seller))}`)
+        console.log(`Difference (s/b zero):             ${parseInt(expectedNewSellerBalance) - parseInt(await web3.eth.getBalance(seller))} `)
+        console.log(`Gas charged:                       ${parseInt(gasCharged)}`)
+        console.log(`\nresponse from endBid:\n          ${JSON.stringify(resObj, null, 2)}`)
+
+        console.log(`Winning bidder balance before:     ${parseInt(winningBidderBalanceBefore)}`)
+        console.log(`Winning bidder balance after:      ${parseInt(winningBidderBalanceAfter)}`)
 
 
 
-
-
-
-
-
-
-
-
-    // it("should confirm auction has started", async () => {
-    //     assert.isTrue(await auction.auctionStatus());
-    // })
-
-    // it("should fail on re-start of started auction", async () => {
-    //     await expect(
-
-    //     )
-    // })
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    it("should confirm starting bid", async () => {
-        const _startingBid = await auction.startingBid();
-        assert.equal(_startingBid.toString(), startingBid);
+        assert.equal(await auction.auctionStatus(), false)
+        assert.equal(parseInt(await web3.eth.getBalance(seller)), parseInt(expectedNewSellerBalance) );
+        assert.equal(await nft.ownerOf(await auction.nftId()), bidder4, "Bidder 4 is now the new owner of nftId 777")
     })
 
-    it("should fail on placing low bid", async () => {
-        // Confirm current bid
-        /*
-        try {
-            
-            const response = await auction.bid({from: accounts[3], value: web3.utils.toWei("1.5", "ether")});
-            
-        } catch (error) {
-            // console.log(`Failed bid response:\n ${JSON.toString(error,null,2)}`);
-            // console.log(`Failed bid response: error.reason\n ${JSON.stringify(error,null,2)}`);
-            assert.equal(error.reason, "Bid is not high enough");
+    it.only("should return list of all bids", async () => {
+        const bids = await auction.listBids()
+        console.log(`Bids array:\n `)
+        for (let i=0; i<bids.length; i++) {
+
+            console.log(`${bids[i]}`)
         }
-        */
-        // This "low bid" should be rejected
-        await expect(
-            auction.bid({ from: accounts[3], value: web3.utils.toWei("1.5", "ether") })
-        ).to.be.rejected;
     })
-
-    it("should confirm total bids value of accounts[2]", async () => {
-        // console.log(accounts);
-        const response = await auction.bidderToBid(accounts[2]);
-        const responseInt = parseInt((response.toString()));
-        // console.log(response);
-        // console.log(responseInt);
-        // console.log(response.toString());
-        assert.equal(response.toString(), web3.utils.toWei("2.0", "ether"));
-        expect(response.toString()).to.equal(web3.utils.toWei("2.0", "ether"));
-    })
-
-
-    it("should place a bid for accounts[1] and confirm new eoa balance", async () => {
-        /*
-        To get the gas cost, we need to first extract the following:
-        *   gasUsed from the transaction receipt
-        *   gasPrice from getTransaction() using receipt.tx
-        * 
-        Now calculate gasCost
-        *   gasCost = gasUsed * gasPrice
-        *   Note: use of toBN to maintain precision while performing calcs
-        */
-
-
-        // Get balance of eoa account prior to making bid
-        const balBeforeBid = await web3.eth.getBalance(accounts[1]);
-
-        // Place bid and capture new eoa balance
-        const receipt = await auction.bid({ from: accounts[1], value: web3.utils.toWei("3.0", "ether") });
-        // console.log(`balBefore from getBalance: ${parseInt(balBeforeBid)}`) // 100.000000000000000000
-        // console.log(`balBefore from solidity:   ${parseInt(receipt.logs[0].args[3])}`)
-        const balAfterBid = await web3.eth.getBalance(accounts[1]);
-
-        // // Obtain gas used from the receipt
-        // // const { logs } = receipt;
-        // // console.log(`\n\nHere are the Logs:\n ${JSON.stringify(logs,null,2)}`);
-
-        const gasUsed = toBN(receipt.receipt.gasUsed);
-        // // console.log(`Gas used:          ${gasUsed}`)
-
-        // // Obtain gas price from the receipt.tx and capture corresponding Tx (receipt)
-        const tx = await web3.eth.getTransaction(receipt.tx);
-        const gasPrice = toBN(tx.gasPrice);
-        // // console.log(`tx.gasPrice:       ${tx.gasPrice}`)
-
-        // // Calculate gas charged for the Tx
-        gasCharged = parseInt(gasUsed) * parseInt(gasPrice);
-        // // console.log(`gasCharged:        ${parseInt(gasCharged)}`);
-
-        // // Calculate total bid cost 
-        const totalBidCost = parseInt(web3.utils.toWei("2.0", "ether")) + parseInt(gasCharged);
-        const calculatedBalance = parseInt(balBeforeBid) - parseInt(totalBidCost);
-        // console.log(`Calculated balance:                    ${parseInt(calculatedBalance)}`);
-        // console.log(`Eoa balance after bid from ganache:    ${parseInt(balAfterBid)}`);
-
-        assert(parseInt(calculatedBalance), parseInt(balAfterBid), "Must be equal");
-
-        // console.log(`\nReceipt of bid():                      ${JSON.stringify(receipt,null,2)}`);
-        // console.log(`\nReceipt of getTransaction(receipt.tx): ${JSON.stringify(tx,null,2)}`);
-
-
-    })
-
 
 })
