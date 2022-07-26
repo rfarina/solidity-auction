@@ -1,7 +1,3 @@
-// const { assert } = require("chai");
-// const web3 = require("web3");  // even though provided by truffle, but causes not defined
-
-
 const { readFileSync } = require("fs")
 const path = "./deployedAddresses.json"
 
@@ -9,17 +5,15 @@ const { ethers } = require("ethers");
 const chai = require("chai");
 chai.use(require("chai-as-promised"));
 const { assert, expect } = require("chai");
-const { toBN } = web3.utils;
-// const { default: Web3 } = require("web3");
 
-// console.log("testing...");
 const Nft = artifacts.require("Nft");
 const Auction = artifacts.require("Auction");
 const decimals = 18;
 const startingBid = web3.utils.toWei("1.0", "ether");
 const auctionDuration = "4800";
 const eoaBalances = [];
-let gasCharged;
+
+const { toBN, calculateGas } = require("../shared/auction.utils")
 
 contract("Auction", async (accounts) => {
     let nft, auction;
@@ -28,38 +22,6 @@ contract("Auction", async (accounts) => {
     const bidder2 = accounts[2]
     const bidder3 = accounts[3]
     const bidder4 = accounts[4]
-
-    const calculateGas = async (reqObj) => {
-        /*
-        To get the gas cost, we need to first extract the following:
-        *   gasUsed from the transaction receipt
-        *   gasPrice from getTransaction() using receipt.tx
-        * 
-        Now calculate gasCost
-        *   gasCost = gasUsed * gasPrice
-        *   Note: use of toBN to maintain precision while performing calcs
-        */
-
-
-        // // Obtain gas used from the receipt
-        // // const { logs } = receipt;
-        // // console.log(`\n\nHere are the Logs:\n ${JSON.stringify(logs,null,2)}`);
-
-        const gasUsed = toBN(reqObj.receipt.gasUsed);
-        // console.log(`Gas used:          ${gasUsed}`)
-
-        // Obtain gas price from the receipt.tx and capture corresponding Tx (receipt)
-        const tx = await web3.eth.getTransaction(reqObj.tx);
-        const gasPrice = toBN(tx.gasPrice);
-        // console.log(`tx.gasPrice:       ${tx.gasPrice}`)
-
-        // // Calculate gas charged for the Tx
-        const gasCharged = parseInt(gasUsed) * parseInt(gasPrice);
-        // console.log(`gasCharged:        ${parseInt(gasCharged)}`);
-
-        return parseInt(gasCharged)
-    }
-
 
     before(async () => {
         // Get a reference to the contracts deployed on ganache

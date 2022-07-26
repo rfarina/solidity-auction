@@ -1,7 +1,3 @@
-// const { assert } = require("chai");
-// const web3 = require("web3");  // even though provided by truffle, but causes not defined
-
-
 const { readFileSync } = require("fs")
 const path = "./deployedAddresses.json"
 
@@ -9,10 +5,7 @@ const { ethers } = require("ethers");
 const chai = require("chai");
 chai.use(require("chai-as-promised"));
 const { assert, expect } = require("chai");
-// const { default: Web3 } = require("web3");
-// const { toBN } = web3.utils; testing...
 
-// console.log("testing...");
 const Nft = artifacts.require("Nft");
 const Auction = artifacts.require("Auction");
 const decimals = 18;
