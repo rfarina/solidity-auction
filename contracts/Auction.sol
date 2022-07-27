@@ -93,9 +93,6 @@ contract Auction {
         startingBid = _startingBid;
         currentBid = _startingBid;
 
-        // Transfer ownership of nft to this contract, so that it can sell it
-        nft.transferFrom(seller, address(this), nftId);
-
         emit Start(startingBid, _auctionDuration);
     }
 
@@ -181,7 +178,7 @@ contract Auction {
         // _returnLosingBids(); no longer needed
 
         // Transfer token ownership to winning bid
-        nft.transferFrom(address(this), highestBidder, nftId);
+        nft.transferFrom(msg.sender, highestBidder, nftId);
 
         // Transfer funds to seller
         bool success = payable(seller).send(address(this).balance);
