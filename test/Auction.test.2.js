@@ -56,9 +56,10 @@ contract("Auction", async (accounts) => {
     })
 
 
-    it.only("should mint an nft 777 to seller", async () => {
-        await nft.mint(seller, 777)
-        assert.equal(await nft.ownerOf(await auction.nftId()), await auction.seller())
+    it.only("should reference deployed Auction contract", async () => {
+        assert(auction, !undefined)
+        const nftId = await auction.nftId()
+        // console.log(`nftId: ${nftId.toNumber()}`)
+        assert.equal(await auction.nftId(), 777)
     })
-
 })

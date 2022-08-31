@@ -23,6 +23,7 @@ contract("Auction", async (accounts) => {
     const bidder3 = accounts[3]
     const bidder4 = accounts[4]
 
+
     before(async () => {
         // Get a reference to the contracts deployed on ganache
 
@@ -54,30 +55,18 @@ contract("Auction", async (accounts) => {
 
     })
 
+    // Start Auction here
+    it.only("should start the auction", async () => {
+        const resObj = await auction.start(startingBid, auctionDuration)
+        // console.log(`auction.start response:\n ${JSON.stringify(resObj,null,2)}`)
+        // console.log(`auction.start startingBid:\n ${parseInt(resObj.receipt.logs[0].args["startingBid"])}`)
+        // console.log(`auction.start duration:\n ${parseInt(resObj.receipt.logs[0].args["duration"])}`)
 
-    it.only("should end bid, transfer token to winner, transfer funds to seller", async () => {
-        
-        // capture seller beginning balance and contract balance
-        const sellerBalanceBefore = parseInt(await web3.eth.getBalance(seller));
-        const contractBalanceBefore = parseInt(await web3.eth.getBalance(auction.address));
-        
-        console.log(`Seller balance before:             ${parseInt(sellerBalanceBefore)}`)
-        console.log(`Contract balance before:           ${parseInt(contractBalanceBefore)}`)
-        
-        const resObj = await auction.endBid();
-        // Calculate cost of gas, which will be paid by msg.sender, which is the seller
-        const gasCharged = await calculateGas(resObj)
-        const expectedNewSellerBalance = ( parseInt(sellerBalanceBefore) + parseInt(contractBalanceBefore) ) - parseInt(gasCharged)
-        
-        console.log(`Expected seller balance after:     ${parseInt(expectedNewSellerBalance)}`)
-        console.log(`Actual seller balance after:       ${parseInt(await web3.eth.getBalance(seller))}`)
-        console.log(`Difference (s/b zero):             ${parseInt(expectedNewSellerBalance) - parseInt(await web3.eth.getBalance(seller))} `)
-        console.log(`Gas charged:                       ${parseInt(gasCharged)}`)
-        console.log(`\nresponse from endBid:\n          ${JSON.stringify(resObj, null, 2)}`)
-
-        assert.equal(await auction.auctionStatus(), false)
-        assert.equal(parseInt(expectedNewSellerBalance), parseInt(await web3.eth.getBalance(seller)) );
-        assert.equal(await nft.ownerOf(await auction.nftId()), bidder4, "Bidder 4 is now the new owner of nftId 777")
+        assert.equal(resObj.receipt.logs[0].event, "Start")
+        assert.equal(parseInt(resObj.receipt.logs[0].args["startingBid"]), startingBid)
+        assert.equal(parseInt(resObj.receipt.logs[0].args["duration"]), auctionDuration)
+        assert.equal(await auction.auctionActive(), true)
+        assert.isTrue(await auction.auctionActive())
     })
 
 })

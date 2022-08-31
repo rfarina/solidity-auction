@@ -60,6 +60,12 @@ module.exports = {
       network_id: "5777",       // Any network (default: none)
     },
  
+    polygonTestnet: {
+      host: "https://matic-mumbai.chainstacklabs.com/",     // Localhost (default: none)
+      port: 7545,            // Standard Ethereum port (default: none)
+      network_id: "80001",       // Any network (default: none)
+    },
+
     // An additional network, but with some advanced options…
     // advanced: {
     //   port: 8777,             // Custom port

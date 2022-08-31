@@ -60,10 +60,4 @@ contract("Auction", async (accounts) => {
         assert(nft, !undefined)
     })
 
-    it.only("should reference deployed Auction contract", async () => {
-        assert(auction, !undefined)
-        const nftId = await auction.nftId()
-        // console.log(`nftId: ${nftId.toNumber()}`)
-        assert.equal(await auction.nftId(), 777)
-    })
 })

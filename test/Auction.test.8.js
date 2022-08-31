@@ -23,7 +23,6 @@ contract("Auction", async (accounts) => {
     const bidder3 = accounts[3]
     const bidder4 = accounts[4]
 
-
     before(async () => {
         // Get a reference to the contracts deployed on ganache
 
@@ -55,10 +54,9 @@ contract("Auction", async (accounts) => {
 
     })
 
-
-    it.only("should mint an nft 777 to seller", async () => {
-        await nft.mint(seller, 777)
-        assert.equal(await nft.ownerOf(await auction.nftId()), await auction.seller())
-    })
+    it.only("should show highest bidder as address(0)", async () => {
+        // console.log(`highest bidder after auction start: ${await auction.highestBidder()}`)
+        assert.equal(await auction.highestBidder(), "0x0000000000000000000000000000000000000000")
+    })  
 
 })

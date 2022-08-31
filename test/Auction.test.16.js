@@ -23,7 +23,6 @@ contract("Auction", async (accounts) => {
     const bidder3 = accounts[3]
     const bidder4 = accounts[4]
 
-
     before(async () => {
         // Get a reference to the contracts deployed on ganache
 
@@ -55,10 +54,12 @@ contract("Auction", async (accounts) => {
 
     })
 
+    it.only("should return list of all bids", async () => {
+        const bids = await auction.listBids()
+        console.log(`Bids array:\n `)
+        for (let i=0; i<bids.length; i++) {
 
-    it.only("should mint an nft 777 to seller", async () => {
-        await nft.mint(seller, 777)
-        assert.equal(await nft.ownerOf(await auction.nftId()), await auction.seller())
+            console.log(`${bids[i]}`)
+        }
     })
-
 })

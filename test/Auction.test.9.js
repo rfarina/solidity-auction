@@ -23,7 +23,6 @@ contract("Auction", async (accounts) => {
     const bidder3 = accounts[3]
     const bidder4 = accounts[4]
 
-
     before(async () => {
         // Get a reference to the contracts deployed on ganache
 
@@ -55,10 +54,35 @@ contract("Auction", async (accounts) => {
 
     })
 
+    it.only("should fail on starting already active auction", async () => {
+        // This start attempt should be rejected
 
-    it.only("should mint an nft 777 to seller", async () => {
-        await nft.mint(seller, 777)
-        assert.equal(await nft.ownerOf(await auction.nftId()), await auction.seller())
+
+        // The following will not allow for the capture of resObj, and so cannot evaluate the error
+        // But, the try/catch below has flaws as well!! So, resort to "expect" (far below)
+        /*
+        let resObj
+        resObj = await auction.start(startingBid, auctionDuration)
+        console.log(`failed start: ${JSON.stringify(resObj,null,2)}`)
+        */
+
+        // The following try/catch appears to catch, but the error object is not easily stringified
+        /*
+        try {
+            
+            const resObj = await auction.start(startingBid, auctionDuration)
+            
+        } catch (error) {
+            console.log(`Failed to start active auction response:\n ${JSON.stringify(error,null,2)}`);
+            // assert.equal(error.reason, "Bid is not high enough");
+        }
+        */
+
+
+        // This works, but cannot capture the resObj and evaluate it        
+        await expect(
+            auction.start(startingBid, auctionDuration)
+        ).to.be.rejected
+
     })
-
 })

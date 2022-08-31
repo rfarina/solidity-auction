@@ -55,38 +55,9 @@ contract("Auction", async (accounts) => {
 
     })
 
-    it.only("should place another higher bid, which is accepted", async () => {
-        let priorBidder = bidder3
-        let priorBid = await web3.utils.toWei("3.0", "ether")
-        let bidder = bidder4
-        let bid = await web3.utils.toWei("3.5", "ether")
-
-        // Place a bid
-        const resObj = await auction.bid({ from: bidder, value: bid });
-        // console.log(`response from legitimate higher bid:\n ${JSON.stringify(resObj, null, 2)}`)
-
-
-        // log[0] previous bid returned
-        // console.log(`Losing bid returned event: ${resObj.receipt.logs[0].event}`)
-        // console.log(`Losing bid returned address: ${resObj.receipt.logs[0].args["returnedTo"]}`)
-        // console.log(`Losing bid returned amount: ${resObj.receipt.logs[0].args["amount"]}`)
-        assert.equal(resObj.receipt.logs[0].event, "LosingBidReturned")
-        assert.equal(resObj.receipt.logs[0].args["returnedTo"], priorBidder)
-        assert.equal(parseInt(resObj.receipt.logs[0].args["amount"]), priorBid)
-
-
-        // log[1] event Bid accepted
-        // console.log(`Bid accepted event: ${resObj.receipt.logs[1].event}`)
-        // console.log(`Bid accepted address: ${resObj.receipt.logs[1].args["bidder"]}`)
-        // console.log(`Bid accepted amount: ${resObj.receipt.logs[1].args["amount"]}`)
-        assert.equal(resObj.receipt.logs[1].event, "BidAccepted")
-        assert.equal(resObj.receipt.logs[1].args["bidder"], bidder)
-        assert.equal(parseInt(resObj.receipt.logs[1].args["amount"]), bid)
-
-        // Contract balance s/b = accepted bid amount
-        const contractBal = await web3.eth.getBalance(auction.address)
-        // console.log(`Auction contract new balance: ${contractBal}`)
-        assert.equal(parseInt(contractBal), parseInt(bid))
+    it.only("should show seller is still owner", async () => {
+        // console.log(`current token owner: ${await nft.ownerOf(await auction.nftId())}`)
+        // console.log(`seller: ${seller}`)
+        assert.equal(await nft.ownerOf(await auction.nftId()), seller)
     })
-
 })

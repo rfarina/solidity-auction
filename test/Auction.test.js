@@ -54,7 +54,6 @@ contract("Auction", async (accounts) => {
 
     })
 
-
     it.only("should reference deployed Nft contract", async () => {
         assert(nft, !undefined)
     })
@@ -235,7 +234,6 @@ contract("Auction", async (accounts) => {
         assert.equal(parseInt(contractBal), parseInt(bid))
     })
 
-
     it.only("should place a higher bid, which is accepted", async () => {
         let priorBidder = bidder2
         let priorBid = await web3.utils.toWei("2.5", "ether")
@@ -269,7 +267,6 @@ contract("Auction", async (accounts) => {
         // console.log(`Auction contract new balance: ${contractBal}`)
         assert.equal(parseInt(contractBal), parseInt(bid))
     })
-
 
     it.only("should place another higher bid, which is accepted", async () => {
 
