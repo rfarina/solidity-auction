@@ -83,8 +83,8 @@ truffle test test/Auction.test.js --network=test
 
 ## **Unit Testing - incremental testing**
 
-truffle test test/Auction.test.1.js --network=test 
+truffle test test/Auction.test.01.js --network=test 
 
-(followed by Auction.test.2.js  thru Auction.test.7.js)
+(followed by Auction.test.02.js  thru Auction.test.16.js)
 
 **_End of Document_**
