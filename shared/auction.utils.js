@@ -1,8 +1,7 @@
-
 const { toBN } = require("web3-utils")
 
-// async function calculateGas(reqObj) {
-const calculateGas = async (reqObj) => {
+// async function calculateGas(resObj) {
+const calculateGas = async (resObj) => {
     /*
     To get the gas cost, we need to first extract the following:
     *   gasUsed from the transaction receipt
@@ -18,12 +17,12 @@ const calculateGas = async (reqObj) => {
     // // const { logs } = receipt;
     // // console.log(`\n\nHere are the Logs:\n ${JSON.stringify(logs,null,2)}`);
 
-    // console.log(`\n\nresObj:\n ${JSON.stringify(reqObj,null,2)}`);
-    const gasUsed = toBN(reqObj.receipt.gasUsed);
+    // console.log(`\n\nresObj:\n ${JSON.stringify(resObj,null,2)}`);
+    const gasUsed = toBN(resObj.receipt.gasUsed);
     // console.log(`Gas used:          ${gasUsed}`)
 
     // Obtain gas price from the receipt.tx and capture corresponding Tx (receipt)
-    const tx = await web3.eth.getTransaction(reqObj.tx);
+    const tx = await web3.eth.getTransaction(resObj.tx);
     const gasPrice = toBN(tx.gasPrice);
     // console.log(`tx.gasPrice:       ${tx.gasPrice}`)
 
